@@ -48,8 +48,7 @@ test:
 help:
 	@echo "Available targets:"
 	@echo "  build       - Build the kubectl-odh binary"
-	@echo "  doctor      - Build and run the doctor command"
-	@echo "  doctor-json - Build and run the doctor command with JSON output"
+	@echo "  doctor      - Run the doctor command"
 	@echo "  tidy        - Tidy up Go module dependencies"
 	@echo "  clean       - Remove build artifacts"
 	@echo "  fmt         - Format Go code"

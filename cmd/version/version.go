@@ -10,12 +10,17 @@ import (
 	"github.com/lburgazzoli/odh-cli/internal/version"
 )
 
-func AddCommand(root *cobra.Command, flags *genericclioptions.ConfigFlags) {
+const (
+	cmdName  = "version"
+	cmdShort = "Show version information"
+)
+
+func AddCommand(root *cobra.Command, _ *genericclioptions.ConfigFlags) {
 	var outputFormat string
 
 	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Show version information",
+		Use:   cmdName,
+		Short: cmdShort,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch outputFormat {
 			case "json":
@@ -31,7 +36,7 @@ func AddCommand(root *cobra.Command, flags *genericclioptions.ConfigFlags) {
 				if err != nil {
 					return fmt.Errorf("failed to encode version information as JSON: %w", err)
 				}
-				
+
 				return nil
 			default:
 				_, err := fmt.Fprintf(
