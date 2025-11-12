@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/lburgazzoli/odh-cli/internal/version"
@@ -15,13 +16,14 @@ const (
 	cmdShort = "Show version information"
 )
 
+// AddCommand adds the version subcommand to the root command.
 func AddCommand(root *cobra.Command, _ *genericclioptions.ConfigFlags) {
 	var outputFormat string
 
 	cmd := &cobra.Command{
 		Use:   cmdName,
 		Short: cmdShort,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			switch outputFormat {
 			case "json":
 				encoder := json.NewEncoder(cmd.OutOrStdout())

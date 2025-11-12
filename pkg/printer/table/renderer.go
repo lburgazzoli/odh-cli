@@ -1,20 +1,22 @@
 package table
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 
-	"github.com/olekukonko/tablewriter/tw"
-
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
-// ColumnFormatter is a function that transforms a value for display in a specific column
-type ColumnFormatter func(value interface{}) any
+// ColumnFormatter is a function that transforms a value for display in a specific column.
+type ColumnFormatter func(value any) any
 
-// Renderer provides a flexible interface for creating and rendering tables
+// Renderer provides a flexible interface for creating and rendering tables.
 type Renderer struct {
 	writer       io.Writer
 	headers      []string
@@ -23,7 +25,7 @@ type Renderer struct {
 	tableOptions []tablewriter.Option
 }
 
-// NewRenderer creates a new table renderer with the given tableOptions
+// NewRenderer creates a new table renderer with the given tableOptions.
 func NewRenderer(opts ...Option) *Renderer {
 	r := &Renderer{
 		writer:     os.Stdout,
@@ -32,7 +34,7 @@ func NewRenderer(opts ...Option) *Renderer {
 
 	// Apply tableOptions first to set basic configuration
 	for _, opt := range opts {
-		opt(r)
+		opt.ApplyTo(r)
 	}
 
 	r.table = tablewriter.NewTable(r.writer)
@@ -58,12 +60,15 @@ func NewRenderer(opts ...Option) *Renderer {
 	return r
 }
 
-func (r *Renderer) Append(values []any) error {
-	if len(values) != len(r.headers) {
-		return fmt.Errorf("TODO")
+// Append adds a single row to the table.
+// Accepts either []any (legacy) or a struct (auto-extracted via mapstructure).
+func (r *Renderer) Append(value any) error {
+	values, err := r.extractValues(value)
+	if err != nil {
+		return err
 	}
 
-	row := values[:0]
+	row := make([]any, 0, len(r.headers))
 
 	for i := range r.headers {
 		v := values[i]
@@ -77,31 +82,100 @@ func (r *Renderer) Append(values []any) error {
 		row = append(row, v)
 	}
 
-	return r.table.Append(row)
-}
-
-// AppendAll adds multiple rows to the table in a single operation
-func (r *Renderer) AppendAll(rows [][]any) error {
-	for _, values := range rows {
-		if err := r.Append(values); err != nil {
-			return err
-		}
+	if err := r.table.Append(row); err != nil {
+		return fmt.Errorf("failed to append row to table: %w", err)
 	}
+
 	return nil
 }
 
-// Render outputs the table to the configured writer
-func (r *Renderer) Render() error {
-	return r.table.Render()
+// extractValues extracts column values from either a slice or a struct.
+func (r *Renderer) extractValues(value any) ([]any, error) {
+	if value == nil {
+		return nil, errors.New("cannot append nil value")
+	}
+
+	// Check if it's a slice
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Slice {
+		// Legacy behavior: treat as []any
+		values := make([]any, v.Len())
+		for i := range v.Len() {
+			values[i] = v.Index(i).Interface()
+		}
+
+		if len(values) != len(r.headers) {
+			return nil, fmt.Errorf("column count mismatch: expected %d, got %d", len(r.headers), len(values))
+		}
+
+		return values, nil
+	}
+
+	// For struct types, convert to map and extract by column name
+	var dataMap map[string]any
+	if err := mapstructure.Decode(value, &dataMap); err != nil {
+		return nil, fmt.Errorf("failed to decode value to map: %w", err)
+	}
+
+	values := make([]any, 0, len(r.headers))
+	for _, header := range r.headers {
+		val, err := r.extractFieldValue(dataMap, header)
+		if err != nil {
+			return nil, fmt.Errorf("column %q: %w", header, err)
+		}
+		values = append(values, val)
+	}
+
+	return values, nil
 }
 
-// SetHeaders updates the table headers (useful for dynamic header configuration)
+// extractFieldValue extracts a single field value from the map by column name.
+// Uses case-insensitive matching.
+func (r *Renderer) extractFieldValue(data map[string]any, columnName string) (any, error) {
+	// Try exact match first
+	if val, ok := data[columnName]; ok {
+		return val, nil
+	}
+
+	// Try case-insensitive match
+	lowerColumn := strings.ToLower(columnName)
+	for key, val := range data {
+		if strings.ToLower(key) == lowerColumn {
+			return val, nil
+		}
+	}
+
+	return nil, errors.New("field not found")
+}
+
+// AppendAll adds multiple rows to the table in a single operation.
+// Each item in the slice can be either []any or a struct.
+func (r *Renderer) AppendAll(rows []any) error {
+	for _, value := range rows {
+		if err := r.Append(value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Render outputs the table to the configured writer.
+func (r *Renderer) Render() error {
+	if err := r.table.Render(); err != nil {
+		return fmt.Errorf("failed to render table: %w", err)
+	}
+
+	return nil
+}
+
+// SetHeaders updates the table headers (useful for dynamic header configuration).
 func (r *Renderer) SetHeaders(headers ...string) {
 	r.headers = headers
 	r.table.Header(headers)
 }
 
-// GetHeaders returns the current headers
+// GetHeaders returns the current headers.
 func (r *Renderer) GetHeaders() []string {
 	return r.headers
 }

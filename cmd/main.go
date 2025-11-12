@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/lburgazzoli/odh-cli/cmd/doctor"
 	"github.com/lburgazzoli/odh-cli/cmd/version"
 )
 
@@ -18,7 +18,6 @@ func main() {
 		Short: "kubectl plugin for ODH diagnostic and inspection",
 	}
 
-	doctor.AddCommand(cmd, flags)
 	version.AddCommand(cmd, flags)
 
 	if err := cmd.Execute(); err != nil {

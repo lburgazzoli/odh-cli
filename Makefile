@@ -13,6 +13,20 @@ LDFLAGS = -X 'github.com/lburgazzoli/odh-cli/internal/version.Version=$(VERSION)
           -X 'github.com/lburgazzoli/odh-cli/internal/version.Commit=$(COMMIT)' \
           -X 'github.com/lburgazzoli/odh-cli/internal/version.Date=$(DATE)'
 
+# Linter configuration
+LINT_TIMEOUT := 10m
+
+## Tools
+GOLANGCI_VERSION ?= v2.6.0
+GOLANGCI ?= go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
+GOVULNCHECK_VERSION ?= latest
+GOVULNCHECK ?= go run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
+
+# Setting SHELL to bash allows bash commands to be executed by recipes.
+# Options are set to exit when a recipe line exits non-zero or a piped command fails.
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+
 # Build the binary
 .PHONY: build
 build:
@@ -32,11 +46,33 @@ tidy:
 .PHONY: clean
 clean:
 	rm -f $(BINARY_NAME)
+	go clean -x
+	go clean -x -testcache
 
 # Format code
 .PHONY: fmt
 fmt:
+	@$(GOLANGCI) fmt --config .golangci.yml
 	go fmt ./...
+
+# Run linter
+.PHONY: lint
+lint:
+	@$(GOLANGCI) run --config .golangci.yml --timeout $(LINT_TIMEOUT)
+
+# Run linter with auto-fix
+.PHONY: lint/fix
+lint/fix:
+	@$(GOLANGCI) run --config .golangci.yml --timeout $(LINT_TIMEOUT) --fix
+
+# Run vulnerability check
+.PHONY: vulncheck
+vulncheck:
+	@$(GOVULNCHECK) ./...
+
+# Run all checks
+.PHONY: check
+check: lint vulncheck
 
 # Run tests
 .PHONY: test
@@ -48,9 +84,13 @@ test:
 help:
 	@echo "Available targets:"
 	@echo "  build       - Build the kubectl-odh binary"
-	@echo "  doctor      - Run the doctor command"
+	@echo "  run         - Run the doctor command"
 	@echo "  tidy        - Tidy up Go module dependencies"
-	@echo "  clean       - Remove build artifacts"
+	@echo "  clean       - Remove build artifacts and test cache"
 	@echo "  fmt         - Format Go code"
+	@echo "  lint        - Run golangci-lint"
+	@echo "  lint/fix    - Run golangci-lint with auto-fix"
+	@echo "  vulncheck   - Run vulnerability scanner"
+	@echo "  check       - Run all checks (lint + vulncheck)"
 	@echo "  test        - Run tests"
 	@echo "  help        - Show this help message"

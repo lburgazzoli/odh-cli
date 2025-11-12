@@ -160,85 +160,14 @@ A standard Go CLI project structure is recommended, drawing inspiration from `sa
 
 ## 6. Development Guidelines
 
-All code for this project must adhere to the following development guidelines.
+For detailed coding conventions, testing guidelines, and contribution practices, see [docs/design.md](docs/design.md).
 
-### Core Principles
-
-#### Focus and Precision
-- Address only the specific task at hand
-- Make minimal, targeted changes to fulfill requirements
-- Avoid scope creep or unnecessary modifications
-
-#### Code Quality
-- Follow DRY (Don't Repeat Yourself) principles rigorously
-- Extract common patterns into reusable functions
-- Prioritize readability and maintainability over cleverness
-
-#### Documentation Philosophy
-- Comments should explain **why**, not **what**
-- Focus on clarifying non-obvious behavior, edge cases, and relationships between components
-- Avoid redundant comments that merely restate the code
-- Skip boilerplate docstrings unless they add genuine value
-
-### Language-Specific Guidelines: Go
-
-#### Function Signatures
-- Each parameter must have its own type declaration
-- Never group parameters with the same type
-- Use multiline formatting for functions with many parameters:
-
-```go
-func ProcessRequest(
-    ctx context.Context,
-    userID string,
-    requestType int,
-    payload []byte,
-    timeout time.Duration,
-) (*Response, error) {
-    // implementation
-}
-```
-
-#### Testing with Gomega
-- Prefer vanilla Gomega assertions over Ginkgo BDD style
-- Always use dot imports for Gomega:
-
-```go
-import . "github.com/onsi/gomega"
-```
-
-#### Error Handling
-- Return errors as the last parameter
-- Use `fmt.Errorf` with `%w` verb for error wrapping
-- Handle errors at the appropriate level of abstraction
-
-#### Naming Conventions
-- Use camelCase for unexported functions and variables
-- Use PascalCase for exported functions and types
-- Prefer descriptive names over short abbreviations
-
-### General Code Style
-
-#### Variable Declarations
-- Use short variable names in limited scopes
-- Prefer explicit types when they aid readability
-- Initialize variables close to their usage
-
-#### Function Design
-- Keep functions focused on a single responsibility
-- Limit function length to ~20-30 lines when possible
-- Use early returns to reduce nesting
-
-### Code Review Checklist
-
-Before submitting code, verify:
-
-- [ ] All tests pass and provide meaningful coverage
-- [ ] No duplicate code patterns exist
-- [ ] Comments explain complex logic or business rules
-- [ ] Function signatures follow language conventions
-- [ ] Error handling is appropriate and consistent
-- [ ] Code follows established project patterns
+The design document covers:
+- Setup and build commands
+- Coding conventions (functional options, error handling, function signatures)
+- Testing guidelines (Gomega, test data organization)
+- Extensibility (adding new checks, categories, and output formats)
+- Code review guidelines (git commit conventions, PR checklist)
 
 ## Key Implementation Notes
 
