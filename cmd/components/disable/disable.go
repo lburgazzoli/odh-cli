@@ -1,0 +1,34 @@
+package disable
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+)
+
+const (
+	cmdName  = "disable"
+	cmdShort = "Disable a component"
+	cmdLong  = `Disable an ODH/RHOAI component.
+
+This command is not yet implemented.`
+)
+
+// AddCommand adds the disable subcommand to the components command.
+func AddCommand(parent *cobra.Command, _ *genericclioptions.ConfigFlags) {
+	cmd := &cobra.Command{
+		Use:   cmdName + " <component-name>",
+		Short: cmdShort,
+		Long:  cmdLong,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// TODO: Implement disable functionality
+			return fmt.Errorf("disable command not yet implemented")
+		},
+	}
+
+	parent.AddCommand(cmd)
+}
+

@@ -26,9 +26,9 @@ func TestRendererWithSliceInput(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Age"),
+	renderer := table.NewRenderer[[]any](
+		table.WithWriter[[]any](&buf),
+		table.WithHeaders[[]any]("Name", "Age"),
 	)
 
 	err := renderer.Append([]any{"Alice", 30})
@@ -46,9 +46,9 @@ func TestRendererWithStructInput(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Age", "Status"),
+	renderer := table.NewRenderer[testPerson](
+		table.WithWriter[testPerson](&buf),
+		table.WithHeaders[testPerson]("Name", "Age", "Status"),
 	)
 
 	person := testPerson{
@@ -73,10 +73,10 @@ func TestRendererWithCustomFormatter(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Status"),
-		table.WithFormatter("Name", func(v any) any {
+	renderer := table.NewRenderer[testPerson](
+		table.WithWriter[testPerson](&buf),
+		table.WithHeaders[testPerson]("Name", "Status"),
+		table.WithFormatter[testPerson]("Name", func(v any) any {
 			return strings.ToUpper(v.(string))
 		}),
 	)
@@ -100,10 +100,10 @@ func TestRendererWithJQFormatter(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Tags"),
-		table.WithFormatter("Tags", table.JQFormatter(`. | join(", ")`)),
+	renderer := table.NewRenderer[testPersonWithTags](
+		table.WithWriter[testPersonWithTags](&buf),
+		table.WithHeaders[testPersonWithTags]("Name", "Tags"),
+		table.WithFormatter[testPersonWithTags]("Tags", table.JQFormatter(`. | join(", ")`)),
 	)
 
 	person := testPersonWithTags{
@@ -126,10 +126,10 @@ func TestRendererWithChainedFormatters(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Status"),
-		table.WithFormatter("Name",
+	renderer := table.NewRenderer[testPerson](
+		table.WithWriter[testPerson](&buf),
+		table.WithHeaders[testPerson]("Name", "Status"),
+		table.WithFormatter[testPerson]("Name",
 			table.ChainFormatters(
 				table.JQFormatter("."),
 				func(v any) any {
@@ -161,10 +161,10 @@ func TestRendererWithJQExtraction(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Metadata"),
-		table.WithFormatter("Metadata",
+	renderer := table.NewRenderer[testPersonWithTags](
+		table.WithWriter[testPersonWithTags](&buf),
+		table.WithHeaders[testPersonWithTags]("Name", "Metadata"),
+		table.WithFormatter[testPersonWithTags]("Metadata",
 			table.JQFormatter(`.location // "Unknown"`),
 		),
 	)
@@ -189,15 +189,15 @@ func TestRendererAppendAll(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("Name", "Age"),
+	renderer := table.NewRenderer[testPerson](
+		table.WithWriter[testPerson](&buf),
+		table.WithHeaders[testPerson]("Name", "Age"),
 	)
 
-	people := []any{
-		testPerson{Name: "Alice", Age: 30},
-		testPerson{Name: "Bob", Age: 25},
-		testPerson{Name: "Charlie", Age: 35},
+	people := []testPerson{
+		{Name: "Alice", Age: 30},
+		{Name: "Bob", Age: 25},
+		{Name: "Charlie", Age: 35},
 	}
 
 	err := renderer.AppendAll(people)
@@ -216,9 +216,9 @@ func TestRendererCaseInsensitiveMatching(t *testing.T) {
 	g := NewWithT(t)
 
 	var buf bytes.Buffer
-	renderer := table.NewRenderer(
-		table.WithWriter(&buf),
-		table.WithHeaders("name", "AGE"),
+	renderer := table.NewRenderer[testPerson](
+		table.WithWriter[testPerson](&buf),
+		table.WithHeaders[testPerson]("name", "AGE"),
 	)
 
 	person := testPerson{

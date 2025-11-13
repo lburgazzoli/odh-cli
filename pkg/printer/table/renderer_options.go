@@ -1,36 +1,35 @@
 package table
 
 import (
-	"encoding/json"
 	"io"
 	"strings"
 
-	"github.com/itchyny/gojq"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/lburgazzoli/odh-cli/pkg/util"
+	"github.com/lburgazzoli/odh-cli/pkg/util/jq"
 )
 
 // Option is a functional option for configuring a Renderer.
-type Option = util.Option[Renderer]
+type Option[T any] = util.Option[Renderer[T]]
 
 // WithWriter sets the output writer for the table renderer.
-func WithWriter(w io.Writer) Option {
-	return util.FunctionalOption[Renderer](func(r *Renderer) {
+func WithWriter[T any](w io.Writer) Option[T] {
+	return util.FunctionalOption[Renderer[T]](func(r *Renderer[T]) {
 		r.writer = w
 	})
 }
 
 // WithHeaders sets the column headers for the table.
-func WithHeaders(headers ...string) Option {
-	return util.FunctionalOption[Renderer](func(r *Renderer) {
+func WithHeaders[T any](headers ...string) Option[T] {
+	return util.FunctionalOption[Renderer[T]](func(r *Renderer[T]) {
 		r.headers = headers
 	})
 }
 
 // WithFormatter adds a column-specific formatter function.
-func WithFormatter(columnName string, formatter ColumnFormatter) Option {
-	return util.FunctionalOption[Renderer](func(r *Renderer) {
+func WithFormatter[T any](columnName string, formatter ColumnFormatter) Option[T] {
+	return util.FunctionalOption[Renderer[T]](func(r *Renderer[T]) {
 		if r.formatters == nil {
 			r.formatters = make(map[string]ColumnFormatter)
 		}
@@ -40,46 +39,18 @@ func WithFormatter(columnName string, formatter ColumnFormatter) Option {
 }
 
 // WithTableOptions sets the underlying tablewriter options.
-func WithTableOptions(values ...tablewriter.Option) Option {
-	return util.FunctionalOption[Renderer](func(r *Renderer) {
+func WithTableOptions[T any](values ...tablewriter.Option) Option[T] {
+	return util.FunctionalOption[Renderer[T]](func(r *Renderer[T]) {
 		r.tableOptions = append(r.tableOptions, values...)
 	})
 }
 
 // JQFormatter creates a ColumnFormatter that executes a jq query on the input value.
-// The query is compiled once at creation time.
-// Panics if the query compilation fails (fail fast at setup time).
+// Uses the jq.Query utility which properly handles unstructured types.
 func JQFormatter(query string) ColumnFormatter {
-	compiledQuery, err := gojq.Parse(query)
-	if err != nil {
-		panic("failed to compile jq query: " + err.Error())
-	}
-
 	return func(value any) any {
-		// Convert Go types to JSON-compatible types for gojq
-		// This handles slices, maps, structs, etc.
-		var normalizedValue any
-		jsonBytes, err := json.Marshal(value)
+		result, err := jq.Query(value, query)
 		if err != nil {
-			return err.Error()
-		}
-
-		if err := json.Unmarshal(jsonBytes, &normalizedValue); err != nil {
-			return err.Error()
-		}
-
-		// Run the query against the normalized value
-		iter := compiledQuery.Run(normalizedValue)
-
-		// Get the first result
-		result, ok := iter.Next()
-		if !ok {
-			return nil
-		}
-
-		// Check for errors
-		if err, isErr := result.(error); isErr {
-			// Return error as string for display
 			return err.Error()
 		}
 

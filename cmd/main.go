@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"github.com/lburgazzoli/odh-cli/cmd/components"
 	"github.com/lburgazzoli/odh-cli/cmd/version"
 )
 
@@ -19,6 +20,7 @@ func main() {
 	}
 
 	version.AddCommand(cmd, flags)
+	components.AddCommand(cmd, flags)
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)

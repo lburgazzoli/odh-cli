@@ -17,7 +17,8 @@ import (
 type ColumnFormatter func(value any) any
 
 // Renderer provides a flexible interface for creating and rendering tables.
-type Renderer struct {
+// T is the type of objects that will be appended to the table.
+type Renderer[T any] struct {
 	writer       io.Writer
 	headers      []string
 	formatters   map[string]ColumnFormatter
@@ -26,8 +27,8 @@ type Renderer struct {
 }
 
 // NewRenderer creates a new table renderer with the given tableOptions.
-func NewRenderer(opts ...Option) *Renderer {
-	r := &Renderer{
+func NewRenderer[T any](opts ...Option[T]) *Renderer[T] {
+	r := &Renderer[T]{
 		writer:     os.Stdout,
 		formatters: make(map[string]ColumnFormatter),
 	}
@@ -62,10 +63,32 @@ func NewRenderer(opts ...Option) *Renderer {
 
 // Append adds a single row to the table.
 // Accepts either []any (legacy) or a struct (auto-extracted via mapstructure).
-func (r *Renderer) Append(value any) error {
-	values, err := r.extractValues(value)
-	if err != nil {
-		return err
+func (r *Renderer[T]) Append(value T) error {
+	// Check if all headers have formatters
+	allHaveFormatters := true
+	for _, header := range r.headers {
+		if _, exists := r.formatters[strings.ToUpper(header)]; !exists {
+			allHaveFormatters = false
+			break
+		}
+	}
+
+	var values []any
+	var err error
+
+	if allHaveFormatters {
+		// If all columns have formatters, pass the whole value to each formatter
+		// This allows JQ formatters to work directly on complex objects
+		values = make([]any, len(r.headers))
+		for i := range r.headers {
+			values[i] = value
+		}
+	} else {
+		// Otherwise, extract values from the object first
+		values, err = r.extractValues(value)
+		if err != nil {
+			return err
+		}
 	}
 
 	row := make([]any, 0, len(r.headers))
@@ -90,7 +113,7 @@ func (r *Renderer) Append(value any) error {
 }
 
 // extractValues extracts column values from either a slice or a struct.
-func (r *Renderer) extractValues(value any) ([]any, error) {
+func (r *Renderer[T]) extractValues(value any) ([]any, error) {
 	if value == nil {
 		return nil, errors.New("cannot append nil value")
 	}
@@ -131,7 +154,7 @@ func (r *Renderer) extractValues(value any) ([]any, error) {
 
 // extractFieldValue extracts a single field value from the map by column name.
 // Uses case-insensitive matching.
-func (r *Renderer) extractFieldValue(data map[string]any, columnName string) (any, error) {
+func (r *Renderer[T]) extractFieldValue(data map[string]any, columnName string) (any, error) {
 	// Try exact match first
 	if val, ok := data[columnName]; ok {
 		return val, nil
@@ -150,7 +173,7 @@ func (r *Renderer) extractFieldValue(data map[string]any, columnName string) (an
 
 // AppendAll adds multiple rows to the table in a single operation.
 // Each item in the slice can be either []any or a struct.
-func (r *Renderer) AppendAll(rows []any) error {
+func (r *Renderer[T]) AppendAll(rows []T) error {
 	for _, value := range rows {
 		if err := r.Append(value); err != nil {
 			return err
@@ -161,7 +184,7 @@ func (r *Renderer) AppendAll(rows []any) error {
 }
 
 // Render outputs the table to the configured writer.
-func (r *Renderer) Render() error {
+func (r *Renderer[T]) Render() error {
 	if err := r.table.Render(); err != nil {
 		return fmt.Errorf("failed to render table: %w", err)
 	}
@@ -170,12 +193,12 @@ func (r *Renderer) Render() error {
 }
 
 // SetHeaders updates the table headers (useful for dynamic header configuration).
-func (r *Renderer) SetHeaders(headers ...string) {
+func (r *Renderer[T]) SetHeaders(headers ...string) {
 	r.headers = headers
 	r.table.Header(headers)
 }
 
 // GetHeaders returns the current headers.
-func (r *Renderer) GetHeaders() []string {
+func (r *Renderer[T]) GetHeaders() []string {
 	return r.headers
 }
