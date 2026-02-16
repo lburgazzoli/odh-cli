@@ -36,6 +36,14 @@ RUN make build \
     COMMIT=${COMMIT} \
     DATE=${DATE}
 
+# Clone upgrade helpers repository (configurable via build args)
+ARG UPGRADE_HELPERS_REPO=https://github.com/red-hat-data-services/rhoai-upgrade-helpers.git
+ARG UPGRADE_HELPERS_BRANCH=main
+
+RUN git clone --depth 1 --branch ${UPGRADE_HELPERS_BRANCH} \
+    ${UPGRADE_HELPERS_REPO} /opt/rhoai-upgrade-helpers \
+    && rm -rf /opt/rhoai-upgrade-helpers/.git
+
 # Runtime stage
 FROM registry.access.redhat.com/ubi9/ubi:latest
 
@@ -82,8 +90,14 @@ RUN set -e; \
     rm -f openshift-client.tar.gz kubectl README.md
 
 # Copy binary from builder (cross-compiled for target platform)
-COPY --from=builder /workspace/bin/kubectl-odh /usr/local/bin/kubectl-odh
+COPY --from=builder /workspace/bin/kubectl-odh /opt/rhoai-cli/bin/rhoai-cli
 
-# Set entrypoint to kubectl-odh binary
+# Add rhoai-cli to PATH
+ENV PATH="/opt/rhoai-cli/bin:${PATH}"
+
+# Copy upgrade helpers from builder
+COPY --from=builder /opt/rhoai-upgrade-helpers /opt/rhoai-upgrade-helpers
+
+# Set entrypoint to rhoai-cli binary
 # Users can override with --entrypoint /bin/bash for interactive debugging
-ENTRYPOINT ["/usr/local/bin/kubectl-odh"]
+ENTRYPOINT ["/opt/rhoai-cli/bin/rhoai-cli"]
