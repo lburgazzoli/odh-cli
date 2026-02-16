@@ -41,8 +41,8 @@ ARG UPGRADE_HELPERS_REPO=https://github.com/red-hat-data-services/rhoai-upgrade-
 ARG UPGRADE_HELPERS_BRANCH=main
 
 RUN git clone --depth 1 --branch ${UPGRADE_HELPERS_BRANCH} \
-    ${UPGRADE_HELPERS_REPO} /opt/rhoai-upgrade-helpers \
-    && rm -rf /opt/rhoai-upgrade-helpers/.git
+    ${UPGRADE_HELPERS_REPO} /opt/rhai-upgrade-helpers \
+    && rm -rf /opt/rhai-upgrade-helpers/.git
 
 # Runtime stage
 FROM registry.access.redhat.com/ubi9/ubi:latest
@@ -90,14 +90,14 @@ RUN set -e; \
     rm -f openshift-client.tar.gz kubectl README.md
 
 # Copy binary from builder (cross-compiled for target platform)
-COPY --from=builder /workspace/bin/kubectl-odh /opt/rhoai-cli/bin/rhoai-cli
+COPY --from=builder /workspace/bin/kubectl-odh /opt/rhai-cli/bin/rhai-cli
 
-# Add rhoai-cli to PATH
-ENV PATH="/opt/rhoai-cli/bin:${PATH}"
+# Add rhai-cli to PATH
+ENV PATH="/opt/rhai-cli/bin:${PATH}"
 
 # Copy upgrade helpers from builder
-COPY --from=builder /opt/rhoai-upgrade-helpers /opt/rhoai-upgrade-helpers
+COPY --from=builder /opt/rhai-upgrade-helpers /opt/rhai-upgrade-helpers
 
-# Set entrypoint to rhoai-cli binary
+# Set entrypoint to rhai-cli binary
 # Users can override with --entrypoint /bin/bash for interactive debugging
-ENTRYPOINT ["/opt/rhoai-cli/bin/rhoai-cli"]
+ENTRYPOINT ["/opt/rhai-cli/bin/rhai-cli"]
